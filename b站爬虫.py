@@ -1,30 +1,63 @@
 from selenium import webdriver
-import time
 from selenium.webdriver.common.by import By
+import time
 import requests
-headers = {
-    "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
-    "Referer": "https://www.bilibili.com/"
-}
-    
-driver = webdriver.Edge()
-videos = driver.get("https://www.bilibili.com/video/BV1wW1hBME6h/?spm_id_from=333.337.search-card.all.click&vd_source=a4152f22abb1a390d420a08ea2acef79")
-time.sleep(5)
-# play_buttom = driver.find_element(By.CLASS_NAME,"bpx-player-ctrl-play")
-# play_buttom.click()
-playinfo = driver.execute_script("return window.__playinfo__")
-dash = playinfo["data"]["dash"]
-video = dash["video"]
-audio = dash["audio"]
-best_video = video[0]
-best_audio = audio[0]
-audio_url = best_audio["baseUrl"]
-video_url = best_video["baseUrl"]
-a = requests.get(video_url,headers=headers)
-b = requests.get(audio_url,headers=headers)
-# with open(r"E:\python\爬虫数据\b站视频2.mp4","wb")as f:
-#     f.write(a.content)
-b = requests.get(audio_url, headers=headers)
-print("音频内容长度：", len(b.content))  # 看这里
-with open(r"E:\python\爬虫数据\b站音频3.aac","wb")as f:
-    f.write(b.content)
+def get_headers():
+    headers = input("请输入UA头(可选，不填就直接回车):")
+    if headers.strip() == "":
+        headers = {
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
+            "referer":"https://www.bilibili.com/",
+            "Accept-Encoding": "identity",
+        }
+    else :
+        headers = {
+            "User-Agent":headers,
+            "referer":"https://www.bilibili.com/",
+            "Accept-Encoding": "identity",
+        }
+    return headers
+
+def data():
+    url = input("请输入url地址(必须详细网页):")
+    place = input("请输入绝对路径:")
+    return url,place
+
+def driver_get(url):
+    driver = webdriver.Edge()
+    driver.get(url)
+    time.sleep(2)
+    all = driver.execute_script("return window.__playinfo__")
+    # try:
+    #     title = driver.find_element(By.CLASS_NAME,"video-title")
+    # except:
+    #     print("标题获取失败")
+    driver.quit()
+    return all
+
+def AUDIOandVIDEO_get(all):
+    data = all["data"]["dash"]
+    audio = data["audio"][0]
+    audio_url = audio["baseUrl"]
+    video = data["video"][0]
+    video_url = video["baseUrl"]
+    print(f"解析出音频链接：{audio_url}")
+    print(f"解析出视频链接：{video_url}")
+    return audio_url,video_url
+
+def main():
+    try:
+        headers = get_headers()
+        url,place = data()
+        all = driver_get(url)
+        audio_url,video_url = AUDIOandVIDEO_get(all)
+        real_audio = requests.get(audio_url,headers = headers)
+        real_video = requests.get(video_url,headers = headers)
+        with open(fr"{place}/视频.mp4","wb")as f:
+            f.write(real_video.content)
+        with open(fr"{place}/音频.aac","wb")as f:
+            f.write(real_audio.content)
+        print("下载成功")
+    except:
+        print("失败")
+main()
